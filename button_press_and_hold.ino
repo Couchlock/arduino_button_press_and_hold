@@ -1,32 +1,31 @@
 // button_press_and_hold -- sketch for registering button presses and button holds -- easily expanded upon
 //CONSTANTS:
-  const byte BUT_ON = LOW;   //easier to switch this to pulldown-type circuit
-  const byte BUT_OFF = HIGH;  //ditto
-  const byte LEFT_BUTTON = 2; //left/down button
-  const byte RIGHT_BUTTON = 3;  //right/up button
   const byte DEBOUNCE_DELAY = 85;   //(in millis)the debounce time, set this to your needs. Higher = less flicker. Too high affects whether your press was read at all. It all depends on your individual buttons
-  const unsigned int BUTTON_HOLD_TIME = 1500; //(in millis)time needed for button press to be considered long-pressed(1.5sec)                                  
-  const byte NUM_BUT = 2;
-  enum  { LEFT, RIGHT };
+  const unsigned short BUTTON_HOLD_TIME = 1000; //(in millis)time needed for button press to be considered long-pressed(1.5sec)                                  
+  const byte NUM_BUT = 2; //this represents the number of buttons we're dealing with
 
-//button states
-  volatile byte leftButtonState = BUT_ON;  //these are set LOW because pull-down circuit
-  volatile byte rightButtonState = BUT_ON; //ditto. You can switch the #define BUT_ON/BUT_OFF above for pull-up
-
-  byte prevButtonState[NUM_BUT];
+  enum { BUT_ON, BUT_OFF }; //using pull-up in this example so BUT_ON = 0, BUT_OFF = 1. use enum { BUT_OFF, BUT_ON } for pulldown type circuit
+  enum { LEFT, RIGHT };     //these are our button names. Can just as easily replace these with numbers.
+  //button pins -- add as many of these as you have buttons. I needed two.
+  const byte BUTTONS[NUM_BUT] = { 2, 3 }; //add as many buttons as you'd like, as well as their corresponing pins
+  
+//button states -- I have them as volatile as my final use involves attaching interrupts
+  volatile byte buttonState[NUM_BUT] = { BUT_ON, BUT_ON }; //set to LOW because using internal pullup, change to HIGH if using Pulldown
+  volatile byte prevButtonState[NUM_BUT];
  
 //base reading for determing if long-press time has been met
   unsigned long lastButtonTime = 0;
 
 //debounce variables/functions
   unsigned long lastDebounceTime = 0; //used to set a base time (in millis) for our debounce
-  unsigned long debouncer();  //sets debounce timer
+  inline unsigned long debouncer();  //prototype for function that sets debounce timer
 
 void setup() 
 {
   Serial.begin(9600);//lets get that serial monitor running!
-  pinMode(LEFT_BUTTON, INPUT_PULLUP); //change this to INPUT if you're not using the internal pullup
-  pinMode(RIGHT_BUTTON, INPUT_PULLUP);//change this to INPUT if you're not using the internal pullup
+  byte init;
+  for (init = 0; init < NUM_BUT; init++)
+   pinMode(BUTTONS[init], INPUT_PULLUP); //change this to INPUT if you're not using the internal pullup
 }
 
 void loop() 
@@ -38,46 +37,46 @@ void loop()
     prevButtonState[i] = BUT_OFF;
   }
   
-  if (leftButtonState == BUT_OFF && rightButtonState == BUT_OFF)  //if buttons NOT pressed...
+  if (buttonState[LEFT] == BUT_OFF && buttonState[RIGHT] == BUT_OFF)  //if buttons NOT pressed...
   {
     lastDebounceTime = millis(); //...reset the debouncing timer and
     lastButtonTime = millis();  //...reset the button_hold timer
   }
   //read both button states
-  leftButtonState = digitalRead(LEFT_BUTTON);
-  rightButtonState = digitalRead(RIGHT_BUTTON);
+  buttonState[LEFT] = digitalRead(BUTTONS[LEFT]);
+  buttonState[RIGHT] = digitalRead(BUTTONS[RIGHT]);
   
   //make sure we've hit debounce time & check if left button has been pressed..
-  if (debouncer() >= DEBOUNCE_DELAY && (leftButtonState == BUT_ON || rightButtonState == BUT_ON))
+  if (debouncer() >= DEBOUNCE_DELAY && (buttonState[LEFT] == BUT_ON || buttonState[RIGHT] == BUT_ON))
   {
-    while (leftButtonState == BUT_ON || rightButtonState == BUT_ON)//as long as atleast one button is still pressed lets loop..
+    while (buttonState[LEFT] == BUT_ON || buttonState[RIGHT] == BUT_ON)//as long as atleast one button is still pressed lets loop..
     {
       //read both button states again and store in prevButtonState array
-      prevButtonState[LEFT] = leftButtonState;
-      prevButtonState[RIGHT] = rightButtonState;
-      leftButtonState = digitalRead(LEFT_BUTTON); 
-      rightButtonState = digitalRead(RIGHT_BUTTON);
-      //if LEFT_BUTTON was pressed but is no longer pressed and its been less than HOLD_TIME...
-      if (leftButtonState != prevButtonState[LEFT] && (millis() - lastButtonTime) < BUTTON_HOLD_TIME)
+      prevButtonState[LEFT] = buttonState[LEFT];
+      prevButtonState[RIGHT] = buttonState[RIGHT];
+      buttonState[LEFT] = digitalRead(BUTTONS[LEFT]); 
+      buttonState[RIGHT] = digitalRead(BUTTONS[RIGHT]);
+      //if BUTTONS[LEFT] was pressed but is no longer pressed and its been less than HOLD_TIME...
+      if (buttonState[LEFT] != prevButtonState[LEFT] && (millis() - lastButtonTime) < BUTTON_HOLD_TIME)
       {
-        Serial.println("LEFT_BUTTON press"); //obviously place your code here
-      }else if (rightButtonState != prevButtonState[RIGHT] && (millis() - lastButtonTime) < BUTTON_HOLD_TIME)//same for RIGHT_BUTTON
+        Serial.println("BUTTONS[LEFT] press"); //obviously place your code here
+      }else if (buttonState[RIGHT] != prevButtonState[RIGHT] && (millis() - lastButtonTime) < BUTTON_HOLD_TIME)//same for BUTTONS[RIGHT]
       {
-        Serial.println("RIGHT_BUTTON press");//replace with your code
+        Serial.println("BUTTONS[RIGHT] press");//replace with your code
       }
-      if (leftButtonState == BUT_ON && rightButtonState == BUT_OFF && (debouncer() >= BUTTON_HOLD_TIME))//if we've eclipsed the hold time for left button...
+      if (buttonState[LEFT] == BUT_ON && buttonState[RIGHT] == BUT_OFF && (debouncer() >= BUTTON_HOLD_TIME))//if we've eclipsed the hold time for left button...
       {
-        Serial.println("LEFT_BUTTON hold");  //again, place your code here
-        while (leftButtonState == BUT_ON) //stay in loop until button released so as not to repeat press.
+        Serial.println("BUTTONS[LEFT] hold");  //again, place your code here
+        while (buttonState[LEFT] == BUT_ON) //stay in loop until button released so as not to repeat press.
         {
-          leftButtonState = digitalRead(LEFT_BUTTON); 
+          buttonState[LEFT] = digitalRead(BUTTONS[LEFT]); 
         }
-      }else if (leftButtonState == BUT_OFF && rightButtonState == BUT_ON && (debouncer() >= BUTTON_HOLD_TIME))//or if we've eclipsed the hold time for right button...
+      }else if (buttonState[LEFT] == BUT_OFF && buttonState[RIGHT] == BUT_ON && (debouncer() >= BUTTON_HOLD_TIME))//or if we've eclipsed the hold time for right button...
       {
-        Serial.println("RIGHT_BUTTON hold");  //again, place your code here
-        while (rightButtonState == BUT_ON)  //stay in loop until button released so as not to repeat press
+        Serial.println("BUTTONS[RIGHT] hold");  //again, place your code here
+        while (buttonState[RIGHT] == BUT_ON)  //stay in loop until button released so as not to repeat press
         {
-          rightButtonState = digitalRead(RIGHT_BUTTON);
+          buttonState[RIGHT] = digitalRead(BUTTONS[RIGHT]);
         }
       }
     }
@@ -89,4 +88,3 @@ unsigned long debouncer()
 {
   return millis() - lastDebounceTime;
 }
-

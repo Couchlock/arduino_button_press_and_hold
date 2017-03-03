@@ -1,7 +1,7 @@
 // button_press_and_hold -- sketch for registering button presses and button holds -- easily expanded upon
 //CONSTANTS:
   const byte DEBOUNCE_DELAY = 85;   //(in millis)the debounce time, set this to your needs. Higher = less flicker. Too high affects whether your press was read at all. It all depends on your individual buttons
-  const unsigned short BUTTON_HOLD_TIME = 1000; //(in millis)time needed for button press to be considered long-pressed(1.5sec)                                  
+  const unsigned short BUTTON_HOLD_TIME = 1000; //(in millis)time needed for button press to be considered long-pressed(1.0sec)                                  
   const byte NUM_BUT = 2; //this represents the number of buttons we're dealing with
 
   enum { BUT_ON, BUT_OFF }; //using pull-up in this example so BUT_ON = 0, BUT_OFF = 1. use enum { BUT_OFF, BUT_ON } for pulldown type circuit
